@@ -12,50 +12,111 @@ namespace Inasync.Hosting.Tests {
     public class UsageTests {
 
         [TestMethod]
+        [DataRow(new[] { "foo", "bar" })]
         public Task Usage1(string[] args) {
-            return Host.CreateDefaultBuilder(args).InvokeAsync<InternalCommand>();
+            // (Disposable な) ICommand を呼ぶシナリオ
+            return Host.CreateDefaultBuilder(args).InvokeAsync<DisposableCommand>();
         }
 
         [TestMethod]
+        [DataRow(new[] { "foo", "bar" })]
         public Task Usage2(string[] args) {
-            return Host.CreateDefaultBuilder(args).InvokeAsync(provider => {
-                var logger = provider.GetRequiredService<ILogger<UsageTests>>();
-
-                return async cancellationToken => {
-                    logger.LogInformation("Pre Usage2");
-
-                    await Command.InvokeAsync<InternalCommand>(provider, cancellationToken).ConfigureAwait(false);
-                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
-
-                    logger.LogInformation("Post Usage2");
-                };
-            });
+            // Disposable なユースケースを呼ぶシナリオ
+            return Host.CreateDefaultBuilder(args)
+                .ConfigureServices(services => services.AddSingleton<DisposableUseCase>())
+                .InvokeAsync(provider => {
+                    var command = provider.GetRequiredService<DisposableUseCase>();
+                    return cancellationToken => command.ExecuteAsync(args, cancellationToken);
+                });
         }
 
         [TestMethod]
+        [DataRow(new[] { "foo", "bar" })]
         public Task Usage3(string[] args) {
+            // デリゲートを呼ぶシナリオ
             return Host.CreateDefaultBuilder(args).InvokeAsync(provider => {
                 var logger = provider.GetRequiredService<ILogger<UsageTests>>();
 
                 return cancellationToken => {
                     logger.LogInformation("Usage3");
-
-                    throw new ApplicationException();
+                    return Task.CompletedTask;
                 };
             });
         }
 
-        private sealed class InternalCommand : ICommand {
-            private readonly ILogger<InternalCommand> _logger;
+        [TestMethod]
+        [DataRow(new[] { "foo", "bar" })]
+        public void Usage4(string[] args) {
+            // 例外を返すシナリオ
+            TestAA
+                .Act(() => {
+                    return Host.CreateDefaultBuilder(args).InvokeAsync(provider => {
+                        var logger = provider.GetRequiredService<ILogger<UsageTests>>();
 
-            public InternalCommand(ILogger<InternalCommand> logger) {
+                        return cancellationToken => {
+                            logger.LogInformation("Usage4");
+                            throw new ApplicationException();
+                        };
+                    });
+                })
+                .Assert<ApplicationException>();
+        }
+
+        [TestMethod]
+        [DataRow(new[] { "foo", "bar" })]
+        public void Usage5(string[] args) {
+            // キャンセル例外を返すシナリオ
+            var cts = new CancellationTokenSource();
+            cts.Cancel();
+            TestAA
+                .Act(() => {
+                    return Host.CreateDefaultBuilder(args).InvokeAsync(provider => {
+                        var logger = provider.GetRequiredService<ILogger<UsageTests>>();
+
+                        return cancellationToken => {
+                            logger.LogInformation("Usage5");
+                            return default;
+                            //throw new OperationCanceledException();
+                        };
+                    }, cts.Token);
+                })
+                .Assert<OperationCanceledException>();
+        }
+
+        private sealed class DisposableCommand : ICommand, IDisposable {
+            private readonly ILogger<DisposableCommand> _logger;
+
+            public DisposableCommand(ILogger<DisposableCommand> logger) {
                 _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            }
+
+            public void Dispose() {
+                _logger.LogInformation("Dispose");
             }
 
             public async Task InvokeAsync(CancellationToken cancellationToken) {
                 _logger.LogInformation("Pre InvokeAsync");
-                await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(100, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Post InvokeAsync");
+            }
+        }
+
+        private sealed class DisposableUseCase : IDisposable {
+            private readonly ILogger<DisposableUseCase> _logger;
+
+            public DisposableUseCase(ILogger<DisposableUseCase> logger) {
+                _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            }
+
+            public void Dispose() {
+                _logger.LogInformation("Dispose");
+            }
+
+            public async Task ExecuteAsync(string[] args, CancellationToken cancellationToken) {
+                _logger.LogInformation("Pre ExecuteAsync");
+                _logger.LogInformation("args: " + string.Join(" ", args));
+                await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation("Post ExecuteAsync");
             }
         }
     }

@@ -10,7 +10,12 @@ namespace Inasync.Hosting {
     public static class HostBuilderExtensions {
 
         public static Task InvokeAsync<TCommand>(this IHostBuilder hostBuilder, CancellationToken cancellationToken = default) where TCommand : ICommand {
-            return InvokeAsync(hostBuilder, provider => ct => Command.InvokeAsync<TCommand>(provider, ct), cancellationToken);
+            return hostBuilder
+                .ConfigureServices(services => services.AddSingleton(typeof(TCommand)))
+                .InvokeAsync(provider => {
+                    var command = provider.GetRequiredService<TCommand>();
+                    return command.InvokeAsync;
+                }, cancellationToken);
         }
 
         public static Task InvokeAsync(this IHostBuilder hostBuilder, Func<CancellationToken, Task> command, CancellationToken cancellationToken = default) {
@@ -33,23 +38,23 @@ namespace Inasync.Hosting {
                     var command = commandFactory(provider);
                     await applicationLifetime.InvokeAsync(command, cancellationToken).ConfigureAwait(false);
                 }
+                catch (OperationCanceledException ex) when (applicationLifetime.ApplicationStopping.IsCancellationRequested) {
+                    var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(HostBuilderExtensions));
+                    logger.LogInformation(ex.Message);
+                }
                 finally {
                     await host.StopAsync().ConfigureAwait(false);
                 }
             }
-            catch (OperationCanceledException ex) when (applicationLifetime.ApplicationStopping.IsCancellationRequested) {
-                var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(HostBuilderExtensions));
-                logger.LogInformation(ex.Message);
-            }
             finally {
                 // レガシー環境での deadlock 対応: https://github.com/dotnet/corefx/issues/26043
-                await Task.Run(async () => {
+                await Task.Run(() => {
                     if (host is IAsyncDisposable asyncDisposable) {
-                        await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+                        return asyncDisposable.DisposeAsync();
                     }
-                    else {
-                        host.Dispose();
-                    }
+
+                    host.Dispose();
+                    return default;
                 }).ConfigureAwait(false);
             }
         }
