@@ -47,18 +47,18 @@ namespace Inasync.Hosting.Tests {
         [TestMethod]
         [DataRow(new[] { "foo", "bar" })]
         public void Usage4(string[] args) {
+            // 例外を抑制するシナリオ
+            TestAA
+                .Act(() => Host.CreateDefaultBuilder(args).InvokeAsync<ThrowExceptionCommand>())
+                .Assert();
+
             // 例外を返すシナリオ
             TestAA
-                .Act(() => {
-                    return Host.CreateDefaultBuilder(args).InvokeAsync(provider => {
-                        var logger = provider.GetRequiredService<ILogger<UsageTests>>();
-
-                        return cancellationToken => {
-                            logger.LogInformation("Usage4");
-                            throw new ApplicationException();
-                        };
-                    });
-                })
+                .Act(() => Host
+                    .CreateDefaultBuilder(args)
+                    .ConfigureServices(services => services.Configure<CommandOptions>(x => x.ThrowException = true))
+                    .InvokeAsync<ThrowExceptionCommand>()
+                )
                 .Assert<ApplicationException>();
         }
 
@@ -69,17 +69,11 @@ namespace Inasync.Hosting.Tests {
             var cts = new CancellationTokenSource();
             cts.Cancel();
             TestAA
-                .Act(() => {
-                    return Host.CreateDefaultBuilder(args).InvokeAsync(provider => {
-                        var logger = provider.GetRequiredService<ILogger<UsageTests>>();
-
-                        return cancellationToken => {
-                            logger.LogInformation("Usage5");
-                            return default;
-                            //throw new OperationCanceledException();
-                        };
-                    }, cts.Token);
-                })
+                .Act(() => Host
+                    .CreateDefaultBuilder(args)
+                    .ConfigureServices(services => services.Configure<CommandOptions>(x => x.ThrowException = true))
+                    .InvokeAsync<DisposableCommand>(cts.Token)
+                )
                 .Assert<OperationCanceledException>();
         }
 
@@ -95,9 +89,11 @@ namespace Inasync.Hosting.Tests {
             }
 
             public async Task InvokeAsync(CancellationToken cancellationToken) {
-                _logger.LogInformation("Pre InvokeAsync");
-                await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("Post InvokeAsync");
+                using (_logger.BeginScope(nameof(InvokeAsync))) {
+                    _logger.LogInformation("Start");
+                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                    _logger.LogInformation("End");
+                }
             }
         }
 
@@ -113,10 +109,27 @@ namespace Inasync.Hosting.Tests {
             }
 
             public async Task ExecuteAsync(string[] args, CancellationToken cancellationToken) {
-                _logger.LogInformation("Pre ExecuteAsync");
-                _logger.LogInformation("args: " + string.Join(" ", args));
-                await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("Post ExecuteAsync");
+                using (_logger.BeginScope(nameof(ExecuteAsync))) {
+                    _logger.LogInformation("Start");
+                    _logger.LogInformation("args: " + string.Join(" ", args));
+                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                    _logger.LogInformation("End");
+                }
+            }
+        }
+
+        private sealed class ThrowExceptionCommand : ICommand {
+            private readonly ILogger<ThrowExceptionCommand> _logger;
+
+            public ThrowExceptionCommand(ILogger<ThrowExceptionCommand> logger) {
+                _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            }
+
+            public Task InvokeAsync(CancellationToken cancellationToken) {
+                using (_logger.BeginScope(nameof(InvokeAsync))) {
+                    _logger.LogInformation("Start");
+                    throw new ApplicationException();
+                }
             }
         }
     }
