@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Inasync.Hosting {
 
@@ -45,6 +46,13 @@ namespace Inasync.Hosting {
                 finally {
                     await host.StopAsync().ConfigureAwait(false);
                 }
+            }
+            catch (Exception ex) {
+                var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(HostBuilderExtensions));
+                logger.LogError(ex, "");
+
+                var options = provider.GetRequiredService<IOptions<CommandOptions>>().Value;
+                if (options.ThrowException) { throw; }
             }
             finally {
                 // レガシー環境での deadlock 対応: https://github.com/dotnet/corefx/issues/26043
