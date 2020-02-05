@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Inasync.Hosting.Command\Inasync.Hosting.Command.csproj" />
+    <ProjectReference Include="..\Inasync.Hosting.ConsoleHandler\Inasync.Hosting.ConsoleHandler.csproj" />
   </ItemGroup>
 
 </Project>

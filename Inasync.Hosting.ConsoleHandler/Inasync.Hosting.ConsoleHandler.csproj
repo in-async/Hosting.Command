@@ -5,11 +5,11 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <RootNamespace>Inasync.Hosting</RootNamespace>
     <Authors>inasync</Authors>
-    <Description>A helper library for Generic Host that executes a command delegate and automatically stops on exit.</Description>
-    <PackageProjectUrl>https://github.com/in-async/Hosting.Command</PackageProjectUrl>
-    <PackageLicenseUrl>https://github.com/in-async/Hosting.Command/blob/master/LICENSE</PackageLicenseUrl>
-    <PackageTags>library hosting</PackageTags>
-    <Version>0.2.0</Version>
+    <Description>A helper library for Generic Host that executes the specified delegate and automatically shut down on exit.</Description>
+    <PackageProjectUrl>https://github.com/in-async/Hosting.ConsoleHandler</PackageProjectUrl>
+    <PackageLicenseUrl>https://github.com/in-async/Hosting.ConsoleHandler/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageTags>library hosting console</PackageTags>
+    <Version>0.3.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

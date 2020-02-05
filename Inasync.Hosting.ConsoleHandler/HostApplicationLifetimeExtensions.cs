@@ -8,14 +8,14 @@ namespace Inasync.Hosting {
 
     internal static class HostApplicationLifetimeExtensions {
 
-        public static async Task InvokeAsync(this IHostApplicationLifetime applicationLifetime, Func<CancellationToken, Task> command, CancellationToken cancellationToken = default) {
+        public static async Task InvokeAsync(this IHostApplicationLifetime applicationLifetime, Func<CancellationToken, Task> handler, CancellationToken cancellationToken = default) {
             Debug.Assert(applicationLifetime != null);
-            Debug.Assert(command != null);
+            Debug.Assert(handler != null);
 
             using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, applicationLifetime.ApplicationStopping)) {
                 var stoppingToken = linkedCts.Token;
 
-                await command(stoppingToken).ConfigureAwait(false);
+                await handler(stoppingToken).ConfigureAwait(false);
             }
         }
     }

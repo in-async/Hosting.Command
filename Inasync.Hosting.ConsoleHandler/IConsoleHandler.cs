@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Inasync.Hosting {
 
-    public interface ICommand {
+    public interface IConsoleHandler {
 
         Task InvokeAsync(CancellationToken cancellationToken);
     }

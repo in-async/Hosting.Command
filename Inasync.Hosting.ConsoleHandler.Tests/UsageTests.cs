@@ -14,8 +14,8 @@ namespace Inasync.Hosting.Tests {
         [TestMethod]
         [DataRow(new[] { "foo", "bar" })]
         public Task Usage1(string[] args) {
-            // (Disposable な) ICommand を呼ぶシナリオ
-            return Host.CreateDefaultBuilder(args).InvokeAsync<DisposableCommand>();
+            // (Disposable な) IConsoleHandler を呼ぶシナリオ
+            return Host.CreateDefaultBuilder(args).InvokeAsync<DisposableHandler>();
         }
 
         [TestMethod]
@@ -25,8 +25,8 @@ namespace Inasync.Hosting.Tests {
             return Host.CreateDefaultBuilder(args)
                 .ConfigureServices(services => services.AddSingleton<DisposableUseCase>())
                 .InvokeAsync(provider => {
-                    var command = provider.GetRequiredService<DisposableUseCase>();
-                    return cancellationToken => command.ExecuteAsync(args, cancellationToken);
+                    var handler = provider.GetRequiredService<DisposableUseCase>();
+                    return cancellationToken => handler.ExecuteAsync(args, cancellationToken);
                 });
         }
 
@@ -49,15 +49,15 @@ namespace Inasync.Hosting.Tests {
         public void Usage4(string[] args) {
             // 例外を抑制するシナリオ
             TestAA
-                .Act(() => Host.CreateDefaultBuilder(args).InvokeAsync<ThrowExceptionCommand>())
+                .Act(() => Host.CreateDefaultBuilder(args).InvokeAsync<ThrowExceptionHandler>())
                 .Assert();
 
             // 例外を返すシナリオ
             TestAA
                 .Act(() => Host
                     .CreateDefaultBuilder(args)
-                    .ConfigureServices(services => services.Configure<CommandOptions>(x => x.ThrowException = true))
-                    .InvokeAsync<ThrowExceptionCommand>()
+                    .ConfigureServices(services => services.Configure<ConsoleHandlerOptions>(x => x.ThrowException = true))
+                    .InvokeAsync<ThrowExceptionHandler>()
                 )
                 .Assert<ApplicationException>();
         }
@@ -71,16 +71,16 @@ namespace Inasync.Hosting.Tests {
             TestAA
                 .Act(() => Host
                     .CreateDefaultBuilder(args)
-                    .ConfigureServices(services => services.Configure<CommandOptions>(x => x.ThrowException = true))
-                    .InvokeAsync<DisposableCommand>(cts.Token)
+                    .ConfigureServices(services => services.Configure<ConsoleHandlerOptions>(x => x.ThrowException = true))
+                    .InvokeAsync<DisposableHandler>(cts.Token)
                 )
                 .Assert<OperationCanceledException>();
         }
 
-        private sealed class DisposableCommand : ICommand, IDisposable {
-            private readonly ILogger<DisposableCommand> _logger;
+        private sealed class DisposableHandler : IConsoleHandler, IDisposable {
+            private readonly ILogger<DisposableHandler> _logger;
 
-            public DisposableCommand(ILogger<DisposableCommand> logger) {
+            public DisposableHandler(ILogger<DisposableHandler> logger) {
                 _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             }
 
@@ -118,10 +118,10 @@ namespace Inasync.Hosting.Tests {
             }
         }
 
-        private sealed class ThrowExceptionCommand : ICommand {
-            private readonly ILogger<ThrowExceptionCommand> _logger;
+        private sealed class ThrowExceptionHandler : IConsoleHandler {
+            private readonly ILogger<ThrowExceptionHandler> _logger;
 
-            public ThrowExceptionCommand(ILogger<ThrowExceptionCommand> logger) {
+            public ThrowExceptionHandler(ILogger<ThrowExceptionHandler> logger) {
                 _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             }
 

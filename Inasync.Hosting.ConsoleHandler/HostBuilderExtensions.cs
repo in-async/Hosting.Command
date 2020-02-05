@@ -10,24 +10,24 @@ namespace Inasync.Hosting {
 
     public static class HostBuilderExtensions {
 
-        public static Task InvokeAsync<TCommand>(this IHostBuilder hostBuilder, CancellationToken cancellationToken = default) where TCommand : ICommand {
+        public static Task InvokeAsync<THandler>(this IHostBuilder hostBuilder, CancellationToken cancellationToken = default) where THandler : IConsoleHandler {
             return hostBuilder
-                .ConfigureServices(services => services.AddSingleton(typeof(TCommand)))
+                .ConfigureServices(services => services.AddSingleton(typeof(THandler)))
                 .InvokeAsync(provider => {
-                    var command = provider.GetRequiredService<TCommand>();
-                    return command.InvokeAsync;
+                    var handler = provider.GetRequiredService<THandler>();
+                    return handler.InvokeAsync;
                 }, cancellationToken);
         }
 
-        public static Task InvokeAsync(this IHostBuilder hostBuilder, Func<CancellationToken, Task> command, CancellationToken cancellationToken = default) {
-            if (command == null) { throw new ArgumentNullException(nameof(command)); }
+        public static Task InvokeAsync(this IHostBuilder hostBuilder, Func<CancellationToken, Task> handler, CancellationToken cancellationToken = default) {
+            if (handler == null) { throw new ArgumentNullException(nameof(handler)); }
 
-            return InvokeAsync(hostBuilder, _ => command, cancellationToken);
+            return InvokeAsync(hostBuilder, _ => handler, cancellationToken);
         }
 
-        public static async Task InvokeAsync(this IHostBuilder hostBuilder, Func<IServiceProvider, Func<CancellationToken, Task>> commandFactory, CancellationToken cancellationToken = default) {
+        public static async Task InvokeAsync(this IHostBuilder hostBuilder, Func<IServiceProvider, Func<CancellationToken, Task>> handlerFactory, CancellationToken cancellationToken = default) {
             if (hostBuilder == null) { throw new ArgumentNullException(nameof(hostBuilder)); }
-            if (commandFactory == null) { throw new ArgumentNullException(nameof(commandFactory)); }
+            if (handlerFactory == null) { throw new ArgumentNullException(nameof(handlerFactory)); }
 
             var host = hostBuilder.Build();
             var provider = host.Services;
@@ -36,8 +36,8 @@ namespace Inasync.Hosting {
                 try {
                     await host.StartAsync(cancellationToken).ConfigureAwait(false);
 
-                    var command = commandFactory(provider);
-                    await applicationLifetime.InvokeAsync(command, cancellationToken).ConfigureAwait(false);
+                    var handler = handlerFactory(provider);
+                    await applicationLifetime.InvokeAsync(handler, cancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException ex) when (applicationLifetime.ApplicationStopping.IsCancellationRequested) {
                     var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(HostBuilderExtensions));
@@ -51,7 +51,7 @@ namespace Inasync.Hosting {
                 var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(HostBuilderExtensions));
                 logger.LogError(ex, "");
 
-                var options = provider.GetRequiredService<IOptions<CommandOptions>>().Value;
+                var options = provider.GetRequiredService<IOptions<ConsoleHandlerOptions>>().Value;
                 if (options.ThrowException) { throw; }
             }
             finally {

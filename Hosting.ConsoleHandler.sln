@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29519.181
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Inasync.Hosting.Command", "Inasync.Hosting.Command\Inasync.Hosting.Command.csproj", "{42F6D4FF-4408-4267-A246-43CF3E211736}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Inasync.Hosting.ConsoleHandler", "Inasync.Hosting.ConsoleHandler\Inasync.Hosting.ConsoleHandler.csproj", "{42F6D4FF-4408-4267-A246-43CF3E211736}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Inasync.Hosting.Command.Tests", "Inasync.Hosting.Command.Tests\Inasync.Hosting.Command.Tests.csproj", "{7C1C9CBC-B95D-4F2B-947E-8FB18C5D9879}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Inasync.Hosting.ConsoleHandler.Tests", "Inasync.Hosting.ConsoleHandler.Tests\Inasync.Hosting.ConsoleHandler.Tests.csproj", "{7C1C9CBC-B95D-4F2B-947E-8FB18C5D9879}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{58246883-9B70-4EE6-8A3F-B1CFF6468A40}"
 	ProjectSection(SolutionItems) = preProject
