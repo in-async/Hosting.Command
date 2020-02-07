@@ -55,15 +55,14 @@ namespace Inasync.Hosting {
                 if (options.ThrowException) { throw; }
             }
             finally {
-                // レガシー環境での deadlock 対応: https://github.com/dotnet/corefx/issues/26043
-                await Task.Run(() => {
-                    if (host is IAsyncDisposable asyncDisposable) {
-                        return asyncDisposable.DisposeAsync();
-                    }
-
+                // レガシー環境での deadlock 対応: https://github.com/dotnet/corefx/issues/26043 https://github.com/dotnet/runtime/issues/26165
+                await Task.Yield();
+                if (host is IAsyncDisposable asyncDisposable) {
+                    await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+                }
+                else {
                     host.Dispose();
-                    return default;
-                }).ConfigureAwait(false);
+                }
             }
         }
     }
